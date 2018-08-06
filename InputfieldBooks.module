@@ -143,7 +143,7 @@ class InputfieldBooks extends Inputfield {
 	 *
 	 */
 	public function __processInput(WireInputData $input) {
-		bdb($input);
+		//bdb($input);
 		if (!$this->page || !$this->field) {
 			throw new WireException("This inputfield requires that you set valid 'page' and 'field' properties to it.");
 		}
