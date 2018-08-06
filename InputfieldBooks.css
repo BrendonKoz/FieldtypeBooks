@@ -1,0 +1,63 @@
+/*** Taken from InputfieldEvents - not yet modified for this Fieldtype/Inputtype ***/
+
+/* .InputfieldBooks table tr {
+	border: none;
+}
+
+.InputfieldBooks th {
+	padding-bottom: 0;
+	font-weight: bold;
+}
+
+.InputfieldBooks tr.BookTemplate {
+	display: none;
+}
+
+.InputfieldBooks tr:not(.BookTBD):hover td {
+	background: #eee;
+}
+
+.InputfieldBooks input[type=text],
+.InputfieldBooks input[type=url],
+.InputfieldBooks textarea {
+	width: 100%;
+}
+.InputfieldBooks th,
+.InputfieldBooks td {
+	padding: 6px 2px;
+	border-bottom: 1px solid #ddd;
+}
+
+.InputfieldBooks .BookClone {
+	width: 3%;
+	padding-left: 1%;
+	text-align: center;
+}
+
+.InputfieldBooks .BookDate {
+	width: 15%;
+}
+
+.InputfieldBooks .BookLocation {
+	width: 30%;
+}
+
+.InputfieldBooks .BookNotes {
+	width: 50%;
+}
+
+.InputfieldBooks th.BookDel {
+	width: 5%;
+	padding-right: 0;
+
+}
+
+.InputfieldBooks a.BookClone,
+.InputfieldBooks a.BookDel {
+	width: 1.5em;
+	display: block;
+}
+
+.InputfieldBooks .BookTBD td input {
+	text-decoration: line-through;
+}*/

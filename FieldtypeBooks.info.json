@@ -1,0 +1,17 @@
+{
+    "title": "Books Fieldtype",
+    "version": "0.0.1",
+    "summary": "Field that stores one or more books with optional metadata.",
+    "author": "Brendon Kozlowski",
+    "icon": "book",
+    "autoload": false,
+    "singular": true,
+    "permanent": false,
+    "requires": [
+        "PHP>=5.6.0",
+        "ProcessWire>=2.5.28"
+    ],
+    "installs": [
+        "InputfieldBooks"
+    ]
+}

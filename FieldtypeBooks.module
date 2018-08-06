@@ -1,0 +1,263 @@
+<?php
+
+/**
+ * FieldtypeBook (0.0.1)
+ * Field that stores one or more books with optional metadata.
+ *
+ * @author Brendon Kozlowski
+ * File: FieldtypeBook.module
+ *
+ * For documentation about the fields used in this class, please see:
+ * /wire/core/Fieldtype.php
+ * /wire/core/FieldtypeMulti.php
+ *
+ * ProcessWire 3.x, Copyright 2017 by Ryan Cramer
+ * http://www.processwire.com
+ *
+ */
+
+class FieldtypeBooks extends FieldtypeMulti {
+
+	/**
+	 * Initialize this fieldtype and include our OpenLibraryBook class, which serves as the value for fields of type FieldtypeBooks
+	 *
+	 */
+	public function init() {
+		parent::init();
+		$dir = dirname(__FILE__);
+		require_once($dir . '/OpenLibraryBook.php');
+		require_once($dir . '/ObjectArray.php');
+		// $this->addStyle("custom.css");
+		// $this->addScript("custom.js");
+		// $this->addHookAfter("class::function", $this, "yourFunction");
+	}
+
+	/**
+	 * Get a blank value used by this fieldtype
+	 *
+	 * @param Page $page
+	 * @param Field $field
+	 * @return OpenLibraryBook
+	 *
+	 */
+	public function getBlankValue(Page $page, Field $field) {
+		$books = new ObjectArray($page);
+		$books->setTrackChanges(true);
+		return $books;
+	}
+
+	/**
+	 * Process the value to convert it from array to whatever object it needs to be ...
+	 * Given a raw value (value as stored in DB), return the value as it would appear in a Page object
+	 *
+	 * @param Page $page
+	 * @param Field $field
+	 * @param array $value
+	 * @return WireArray
+	 *
+	 */
+	public function ___wakeupValue(Page $page, Field $field, $value) {
+		// If for some reason we already get a valid value, then just return it
+		if ($value instanceof ObjectArray) return $value;
+
+		// Get a blank OpenLibraryBook instance
+		$items = $this->getBlankValue($page, $field);
+
+		// If we were given a blank value, then we've got nothing to do: just return a blank ObjectArray
+		if (empty($value) || !is_array($value)) return $items;
+
+		// Create new objects from each item in the array
+		foreach ($value as $val) {
+			$book = new OpenLibraryBook();
+			$book->title   = $val['data'];    // Note that 'title' is stored as 'data' in the DB
+			$book->isbn    = ($val['isbn'] == 0) ? null : $val['isbn'];
+			$book->callno  = $val['callno'];
+			$book->author  = $val['author'];
+			$book->pubdate = ($val['pubdate'] == "0") ? null : $val['pubdate'];
+			$book->summary = $val['summary'];
+			$book->cover   = $val['cover'];
+			$book->rating  = $val['rating'];
+			$book->setTrackChanges(true);
+			$items->add($book);
+		}
+
+		$items->resetTrackChanges();
+		return $items;
+	}
+
+	/**
+	 * Given an 'awake' value, as set by wakeupValue, convert the value back to a basic type for storage in DB.
+	 *
+	 * @param Page $page
+	 * @param Field $field
+	 * @param string|int|array|object $value
+	 * @return string|int
+	 *
+	 */
+	public function ___sleepValue(Page $page, Field $field, $value) {
+		$sleepValue = array();
+
+		// If $value isn't an ObjectArray, return empty array
+		if (!$value instanceof ObjectArray) return $sleepValue;
+
+		// Default sort the books by title, ascending
+		$value->sort('title');
+
+		// Convert each book to an array in $sleepValue
+		foreach ($value as $book) {
+			// prep ISBN length to allow either 10 or 13 characters
+			$isbn = '';
+			if (strlen($book->isbn) == 13 || strlen($book->isbn) == 10) {
+				// Just right, assign it
+				$isbn = $book->isbn;
+			} else if (strlen($book->isbn) < 13) {
+				if (strlen($book->isbn) < 10) {
+					// Under 10 characters
+					$isbn = str_pad($book->isbn, 10, '0', STR_PAD_LEFT);
+				} else {
+					// 11 or 12 characters, needs to be 13
+					$isbn = str_pad($book->isbn, 13, '0', STR_PAD_LEFT);
+				}
+			} else {
+				// Too long, trim to 13 characters
+				$isbn = substr($book->isbn, 0, 13);
+			}
+
+			$sleepValue[] = array(
+				'data'    => $book->title,    // 'title' is stored as 'data' in DB
+				'isbn'    => $isbn,
+				'callno'  => $book->callno,
+				'author'  => $book->author,
+				'pubdate' => $book->pubdate,
+				'summary' => $book->summary,
+				'cover'   => $book->cover,
+				'rating'  => $book->rating
+			);
+		}
+
+		return $sleepValue;
+	}
+
+	/**
+     * Sanitize the value for runtime storage and return it.
+     *
+     * - Implementation is required by Fieldtype modules, as this method is abstract.
+     * - This method should remove anything that's invalid from the given value. If it can't be sanitized, it should be made blank.
+     * - This method filters every value set to a Page instance, so it should do it's thing as quickly as possible.
+	 */
+	public function sanitizeValue(Page $page, Field $field, $value) {
+		// If given a blank value, return a valid blank value
+		if (empty($value)) return $this->getBlankValue($page, $field, $value);
+
+		// if given something other than an ObjectArray, throw an error
+		if(!$value instanceof ObjectArray) {
+			throw new WireException("Value set to field '$field->name' must be an ObjectArray.");
+		}
+
+		// note that sanitization of individual fields within a given book is already
+		// performed by the Book::set() method, so we don't need to do anything else here.
+
+		return $value;
+	}
+
+	/**
+	 * Format the given value for output and return a string of the formatted value
+	 *
+	 * Page instances call upon this method to do any necessary formatting of a value in preparation for output,
+	 * but only if output formatting `$page->of()` is enabled. The most common use of this method is for text-only fields that
+	 * need to have some text formatting applied to them, like Markdown, SmartyPants, Textile, etc. As a result,
+	 * Fieldtype modules don't need to implement this unless it's applicable.
+	 *
+     * @param  Page   $page
+     * @param  Field  $field
+     * @param  mixed $value
+     * @return string
+     */
+	public function ___formatValue(Page $page, Field $field, $value) {
+		// Logic in this function is unnecessary -- handled by OpenLibraryBook::get()
+		return $value;
+	}
+
+	public function getInputfield(Page $page, Field $field) {
+		// FieldtypeImage comments out this method ... why??
+		$inputfield = $this->modules->get('InputfieldBooks');
+
+		// the InputField requires both a Page and Field (most inputfields don't)
+		$inputfield->setPage($page);
+		$inputfield->setField($field);
+
+		return $inputfield;
+	}
+
+	/**
+     * Get database schema used by the Field
+     * see /wire/core/Fieldtype.php for details
+     *
+     *         Type | Maximum length
+     *   -----------+-------------------------------------
+     *     TINYTEXT |           255 (2 8−1) bytes
+     *         TEXT |        65,535 (216−1) bytes = 64 KiB
+     *   MEDIUMTEXT |    16,777,215 (224−1) bytes = 16 MiB
+     *     LONGTEXT | 4,294,967,295 (232−1) bytes =  4 GiB
+     *
+     * @param Field $field
+     * @return array
+     *
+     */
+	public function getDatabaseSchema(Field $field) {
+		// get the default schema
+		$schema = parent::getDatabaseSchema($field);
+
+		// 'data' is a required field for any Fieldtype, and we're using it to represent our 'title' field
+		$schema['data']    = 'VARCHAR(255) NOT NULL DEFAULT ""';  // title (reusing the 'data' field from default schema)
+		$schema['isbn']    = 'CHAR(13)';                          // isbn
+		$schema['callno']  = 'VARCHAR(20)';                       // call number
+		$schema['author']  = "VARCHAR(255)";                      // author
+		$schema['pubdate'] = "SMALLINT UNSIGNED";                 // publication date (year)
+		$schema['summary'] = "TEXT";                              // book description
+		$schema['cover']   = 'VARCHAR(255)';                      // URL for the book jacket cover art
+		$schema['rating']  = 'FLOAT(5,2)';                        // rating ... expects: 3.33 (0-5), but can accept 100.00
+
+		// Any indexes, for any fields that need to be searchable from selectors:
+		$schema['keys']['data'] = "FULLTEXT KEY `data` (`data`)";   // keep an index of book titles
+		// TODO: add additional keys
+
+		return $schema;
+	}
+
+	/**
+	 * Method called when the field is database-queried from a selector
+	 * Do any additional processing/conversion for fields that may need it
+	 */
+	public function getMatchQuery($query, $table, $subfield, $operator, $value) {
+		// If searching 'title' then assume our default (data) field
+		if ($subfield == 'title') $subfield = 'data';
+
+		return parent::getMatchQuery($query, $table, $subfield, $operator, $value);
+	}
+
+    /**
+	 * This represents the list of Fieldtype modules that the user is allowed to change to from this one.
+     * No compatible fieldtypes, return null.
+     */
+	public function ___getCompatibleFieldtypes(Field $field) {
+		// there are no other fieldtypes compatible with this one
+		return null;
+	}
+
+	/**
+	 * Perform installation: check that this fieldtype can be used with book lookup and warn them if not.
+	 */
+	public function ___install() {
+		if(!ini_get('allow_url_fopen')) {
+			$this->error(__("Book lookup will not work because 'allow_url_fopen' is denied in your PHP settings."));
+		} /*else if (!function_exists('curl_version')) {
+		    $curl = curl_init();
+		    curl_setopt($curl, CURLOPT_URL, $file);
+		    curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+		    $content = curl_exec($curl);
+		    curl_close($curl);
+		}*/
+	}
+
+}

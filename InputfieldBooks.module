@@ -1,0 +1,186 @@
+<?php
+/**
+ * ProcessWire Books Fieldtype
+ *
+ * created by Brendon Kozlowski, bytekick.com, 2017
+ * File: InputfieldBook.module
+ *
+ * Licensed under MIT
+ */
+class InputfieldBooks extends Inputfield {
+
+	#private $tableid;
+	protected $page;
+	protected $field;
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'OpenLibrary Book Inputfield',
+			'version' => '0.0.1',
+			'author' => 'Brendon Kozlowski',
+			'summary' => "Provides input for the Book Fieldtype",
+			'requires' => 'FieldtypeBooks',
+			'icon' => 'book'
+		);
+	}
+
+	public function setPage(Page $page) {
+		$this->page = $page;
+	}
+	public function setField(Field $field) {
+		$this->field = $field;
+	}
+
+	/**
+	 * Render a the HTML for an individual Book input
+	 *
+	 */
+	protected function renderRow(OpenLibraryBook $book, $cnt, $class = 'Book') {
+		$name    = $this->attr('name');
+		$isbn    = "$book->isbn";
+		$title   = $this->sanitizer->entities($book->title);
+		$author  = $this->sanitizer->entities($book->author);
+		$callno  = $this->callno ? $this->callno : '';
+		$pubdate = $book->pubdate > 0 ? date(OpenLibraryBook::dateFormat, $book->pubdate) : '';
+		$cover   = $book->cover;
+		$summary = $this->sanitizer->entities($book->summary);
+		$rating  = $this->rating ? number_format((float) $this->rating, 1) : '';
+
+		/*
+		$labels = array(
+			'title'   => $this->_('Book Title'),
+			'isbn'    => $this->_('ISBN'),
+			#'callno'  => $this->_('Call Number'),
+			'author'  => $this->_('Author'),
+			'pubdate' => $this->_('Publication Year'),
+			'summary' => $this->_('Summary Description'),
+			'cover'   => $this->_('Cover Art URL'),
+			'rating'  => $this->_('Rating Value')
+		);
+
+		foreach ($labels as $key => $label):
+		$out .= <<< _OUT
+		<div class="{$key}">
+			<label>
+				<strong>$label</strong><br />
+				<input type="text" />
+			</label>
+		</div>
+		_OUT;
+		endforeach;*/
+
+		$out = "
+			<li class='OpenLibraryBook$cnt $class'>
+				<div><label><strong>ISBN</strong><br /><input type='text' pattern='[0-9]{10}|[0-9]{13}' title='A 10 or 13 digit ISBN number is required.' name='{$name}_isbn[]' value='$isbn' /></label></div>
+				<div><label><strong>Book Title</strong><br /><input type='text' name='{$name}_title[]' value='$title' /></label></div>
+				<div><label><strong>Author</strong><br /><input type='text' name='{$name}_author[]' value='$author' /></label></div>
+				<div><label><strong>Call Number</strong><br /><input type='text' name='{$name}_callno[]' value='$callno' /></label></div>
+				<div><label><strong>Publication Year</strong><br /><input type='text' name='{$name}_pubdate[]' value='$pubdate' /></label></div>
+				<div><label><strong>Summary Description</strong><br /><textarea name='{$name}_summary[]'>$summary</textarea></label></div>
+				<div><label><strong>Cover Art URL</strong><br /><input type='url' name='{$name}_cover[]' value='$cover' /></label></div>
+				<div><label><strong>Rating</strong><br /><input type='text' name='{$name}_rating[]' value='$rating' /></label></div>
+				<div>
+					<a href='#' class='BookDel ui-helper-clearfix'><span class='ui-icon ui-icon-trash'></span></a>
+					<input type='hidden' name='{$name}_del[]' value='0' />
+				</div>
+			</li>
+		";
+		return $out;
+	}
+
+	/**
+	 * While the method is required, if you don't need it, then just leave the implementation blank.
+	 * Per the Module interface, init() is called after any configuration data has been populated to the Inputfield, but before render.
+	 */
+	public function init() {
+		require_once(dirname(__FILE__) . '/OpenLibraryBook.php');
+		parent::init();
+
+		// load any assets
+		#$conf = $this->getModuleInfo();
+		#$v = (int) $conf['version'];
+		#$this->config->styles->add($this->config->urls->InputfieldHandsontable . 'lib/handsontable.full.min.css?v=' . $v);
+		#$this->config->scripts->add($this->config->urls->InputfieldHandsontable . 'lib/handsontable.full.min.js?v=' . $v);
+		#$this->config->scripts->add($this->config->urls->InputfieldHandsontable . 'FieldtypeHandsontable.js?v=' . $v);
+	}
+
+	/**
+	 * Render the HTML input element(s) markup, ready for insertion in an HTML form.
+	 * This is a method that Inputfield module classes are required to implement.
+	 * @return string
+	 */
+	public function ___render() {
+		$out = null;
+
+		// Begin the list
+		$list = '<ul class="Book BookList InputfieldBooks">';
+
+		// Template for creating new book entries
+		$list .= $this->renderRow(new OpenLibraryBook(), 0, 'Book BookTemplate');
+
+		foreach ($this->attr('value') as $count => $book) {
+			$list .= $this->renderRow($book, $count);
+		}
+
+		// End the list
+		$list .= '</ul>';
+
+		$out = "<ul class='InputfieldBooks gridBooks'>$list</ul>";
+
+		// Add a button for adding additional books
+		$button = $this->modules->get('InputfieldButton');
+		$button->attr('id', $this->attr('name') . '_new');
+		$button->class .= ' InputfieldBooksAdd';
+		$button->icon = 'plus-sign';
+		$button->value = $this->_('Add New Book');
+		$out .= $button->render();
+
+		return $out;
+	}
+
+	/**
+	 * Process input for the Books inputs
+	 *
+	 */
+	public function __processInput(WireInputData $input) {
+		bdb($input);
+		if (!$this->page || !$this->field) {
+			throw new WireException("This inputfield requires that you set valid 'page' and 'field' properties to it.");
+		}
+
+		$name       = $this->attr('name');
+		$books      = $this->field->type->getBlankValue($this->page, $this->field);
+		$numDeleted = 0;
+
+		foreach ($input->{"{$name}_title"} as $count => $title){
+			#if (!$count) continue;	// template for 'new' item is the first, so we can ignore it
+
+			// Check if the item is being deleted
+			if ($input->{"{$name}_del"}[$count]) {
+				// if it's being deleted, we just skip it
+				$numDeleted++;
+				continue;
+			}
+
+			// Create the $book and add it to our $books
+			$book = new OpenLibraryBook();
+			$book->title   = $title;
+			$book->isbn    = $input->{"{$name}_isbn"}[$count];
+			$book->author  = $input->{"{$name}_author"}[$count];
+			$book->callno  = $input->{"{$name}_callno"}[$count];
+			$book->pubdate = $input->{"{$name}_pubdate"}[$count];
+			$book->cover   = $input->{"{$name}_cover"}[$count];
+			$book->summary = $input->{"{$name}_summary"}[$count];
+			$book->rating  = $input->{"{$name}_rating"}[$count];
+			$books->add($book);
+		}
+
+		// If the string values of the processed events are different from the previous,
+		// or if any events have been deleted, then flag this Inputfield as changed
+		// so that it will be automatically saved with the page
+		if("$books" != "$this->value" || $numDeleted) {
+			$this->attr('value', $books);
+			$this->trackChange('value');
+		}
+	}
+}
