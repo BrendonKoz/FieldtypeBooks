@@ -1,3 +1,40 @@
+/*#book-form {
+	display: none;
+}*/
+
+img.book-jacket {
+	height:120px;
+	box-sizing:border-box;
+	position:relative;
+}
+img.book-jacket::after {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 10px;
+	bottom: 0;
+	width: 3px;
+	background: rgba(0,0,0,1);
+	box-shadow: 1px 0 3px rgba(255, 255, 255, 1);
+}
+div.book-jacket {
+	width:90px;
+	height:120px;
+	background-color:#555;
+	color:#BBB;
+	font-weight:bold;
+	font-variant: small-caps;
+	text-shadow:1px 1px 1px rgba(0,0,0,.7);
+	text-align:center;
+	box-sizing: border-box;
+	padding:.3em 5px;
+	line-height:1.1;
+	border-left:8px solid #333;
+}
+.book-jacket {
+	box-shadow: 3px 3px 3px rgba(0,0,0,.3);
+}
+
 /*** Taken from InputfieldEvents - not yet modified for this Fieldtype/Inputtype ***/
 
 /* .InputfieldBooks table tr {

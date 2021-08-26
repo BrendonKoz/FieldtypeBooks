@@ -97,11 +97,14 @@ class InputfieldBooks extends Inputfield {
 		parent::init();
 
 		// load any assets
-		#$conf = $this->getModuleInfo();
-		#$v = (int) $conf['version'];
+		$conf = $this->getModuleInfo();
+		$version = (int) $conf['version'];
 		#$this->config->styles->add($this->config->urls->InputfieldHandsontable . 'lib/handsontable.full.min.css?v=' . $v);
 		#$this->config->scripts->add($this->config->urls->InputfieldHandsontable . 'lib/handsontable.full.min.js?v=' . $v);
 		#$this->config->scripts->add($this->config->urls->InputfieldHandsontable . 'FieldtypeHandsontable.js?v=' . $v);
+
+		// Load Main JS File
+		$this->config->scripts->add($this->config->urls->FieldtypeBooks . "OpenLibraryBook.js?v=" . $version);
 	}
 
 	/**
@@ -116,7 +119,7 @@ class InputfieldBooks extends Inputfield {
 		$list = '<ul class="Book BookList InputfieldBooks">';
 
 		// Template for creating new book entries
-		$list .= $this->renderRow(new OpenLibraryBook(), 0, 'Book BookTemplate');
+		#$list .= $this->renderRow(new OpenLibraryBook(), 0, 'Book BookTemplate');
 
 		foreach ($this->attr('value') as $count => $book) {
 			$list .= $this->renderRow($book, $count);
@@ -127,23 +130,184 @@ class InputfieldBooks extends Inputfield {
 
 		$out = "<ul class='InputfieldBooks gridBooks'>$list</ul>";
 
+		// Add the form fields for entering new book data
+		$out .= '<div id="book-form">';
+		$fieldset = $this->modules->get('InputfieldForm');
+		#$fieldset->label = 'Book #1';
+
+		// ISBN
+		$field = $this->modules->get('InputfieldText');
+		$field->label = __('ISBN');
+		$field->attr('id+name', 'isbn');
+		$field->attr('maxlength', 13);
+		$field->notes = 'A 10 or 13 digit ISBN. 13 digit ISBN is preferred.';
+		#$field->value = '';
+		#$field->columnWidth = 50;
+		$fieldset->add($field);
+
+		// BOOK FORM BUTTON -- must be processed via JS
+#		$button = $this->modules->get('InputfieldButton');
+#		$button->attr('id', 'isbn_search');
+#		$button->class .= ' InputfieldBooksFind';
+#		$button->icon = 'search';
+#		$button->value = $this->_('Find by ISBN');
+#		$button->setSmall()->setSecondary();
+#		$field->columnWidth = 50;
+#		$fieldset->add($button);
+
+		// RIGHT
+/*		$field = $this->modules->get('InputfieldInteger');
+		$field->label = __('Publication Year');
+		$field->attr('id+name', 'pubdate');
+		$field->attr('maxlength', 4);
+		$field->attr('pattern', '\d{4}');
+		$field->attr('placeholder', 'YYYY');
+		#$field->value = '';
+		$field->columnWidth = 50;
+		$fieldset->add($field);
+
+		// RIGHT
+		$field = $this->modules->get('InputfieldText');
+		$field->label = __('Call Number');
+		$field->attr('id+name', 'callno');
+		#$field->value = '';
+		#$field->columnWidth = 25;
+		$fieldset->add($field);
+*/
+/*
+		// RIGHT
+		$field = $this->modules->get('InputfieldMarkup');
+		$field->label = 'Book Cover Thumbnail';
+		$field->attr('id+name', 'cover');
+		$field->notes = 'Book cover image generated automatically from the ISBN.';
+		$field->value = '<div class="book-jacket">Book Cover Not Found</div>';
+		$field->columnWidth = 50;
+		$fieldset->add($field);
+*/
+/*
+		// LEFT
+		$field = $this->modules->get('InputfieldText');
+		$field->label = __('Title');
+		$field->attr('id+name', 'title');
+		#$field->value = '';
+		#$field->columnWidth = 50;
+		$fieldset->add($field);
+
+		// RIGHT
+		$field = $this->modules->get('InputfieldText');
+		$field->label = __('Rating');
+		$field->attr('id+name', 'rating');
+		#$field->value = '';
+		#$field->columnWidth = 50;
+		$fieldset->add($field);
+
+		// LEFT
+		$field = $this->modules->get('InputfieldText');
+		$field->label = __('Author');
+		$field->attr('id+name', 'author');
+		#$field->value = '';
+		#$field->columnWidth = 50;
+		$fieldset->add($field);
+
+		// LEFT
+		$field = $this->modules->get('InputfieldTextarea');
+		$field->label = __('Summary Description');
+		$field->attr('id+name', 'summary');
+		#$field->value = '';
+		#$field->columnWidth = 50;
+		$fieldset->add($field);
+
 		// Add a button for adding additional books
 		$button = $this->modules->get('InputfieldButton');
 		$button->attr('id', $this->attr('name') . '_new');
 		$button->class .= ' InputfieldBooksAdd';
 		$button->icon = 'plus-sign';
 		$button->value = $this->_('Add New Book');
-		$out .= $button->render();
+		$fieldset->add($button);
 
-		return $out;
+		// FULL WIDTH BUTTON
+	    $button = $this->modules->get('InputfieldButton');
+		$button->attr('id', $this->attr('name') . '_new');
+		$button->class .= ' InputfieldBooksAdd';
+		$button->icon = 'plus';
+	    $button->value = __('Add Book');
+		$button->setSmall()->setSecondary();
+	    $button->attr('data-panel-id', 'book-form');
+		$button->attr('data-tab-text', __('Adding a Book'));
+	    $button->addClass('pw-panel');
+	    #$fieldset->add($button);
+		#$out .= $button->render();
+*/
+		// TITLE
+		$field = $this->modules->get('InputfieldText');
+		$field->label = __('Title');
+		$field->attr('id+name', 'title');
+		$fieldset->add($field);
+
+		// AUTHOR
+		$field = $this->modules->get('InputfieldText');
+		$field->label = __('Author');
+		$field->attr('id+name', 'author');
+		$fieldset->add($field);
+
+		// SUMMARY DESCRIPTION
+		$field = $this->modules->get('InputfieldTextarea');
+		$field->label = __('Summary Description');
+		$field->attr('id+name', 'summary');
+		$fieldset->add($field);
+
+		// PUBLICATION YEAR
+		$field = $this->modules->get('InputfieldInteger');
+		$field->label = __('Publication Year');
+		$field->attr('id+name', 'pubdate');
+		$field->attr('maxlength', 4);
+		$field->attr('pattern', '\d{4}');
+		$field->attr('placeholder', 'YYYY');
+		$field->attr('min', 0000);
+		$field->attr('max', date('Y'));
+		$fieldset->add($field);
+
+		// RATING
+		$field = $this->modules->get('InputfieldText');
+		$field->label = __('Rating');
+		$field->attr('id+name', 'rating');
+		$fieldset->add($field);
+
+		// CALL NUMBER
+		$field = $this->modules->get('InputfieldText');
+		$field->label = __('Call Number');
+		$field->attr('id+name', 'callno');
+		$fieldset->add($field);
+
+		// BOOK FORM BUTTON -- must be processed via JS
+		$button = $this->modules->get('InputfieldButton');
+		$button->attr('id', $this->attr('name') . '_add');
+		$button->class .= ' InputfieldBooksAdd';
+		$button->icon = 'plus-sign';
+		$button->value = $this->_('Add New Book');
+		$fieldset->add($button);
+
+		// Add a button for adding additional books
+	    $button = $this->modules->get('InputfieldButton');
+		$button->attr('id', $this->attr('name') . '_new');
+		$button->class .= ' InputfieldBooksAddPanel';
+		$button->icon = 'plus-circle';
+	    $button->value = __('Add Book');
+		$button->setSmall()->setSecondary();
+	    $button->attr('data-panel-id', 'book-form');
+		#$button->attr('data-href', $this->config->urls->admin . 'test/');
+		$button->attr('data-tab-text', __('Adding a Book'));
+	    $button->addClass('pw-panel');
+
+		return $out . $fieldset->render() . '</div>' . $button->render();
 	}
 
 	/**
 	 * Process input for the Books inputs
 	 *
 	 */
-	public function __processInput(WireInputData $input) {
-		//bdb($input);
+	public function ___processInput(WireInputData $input) {
+		bdb($input);
 		if (!$this->page || !$this->field) {
 			throw new WireException("This inputfield requires that you set valid 'page' and 'field' properties to it.");
 		}
